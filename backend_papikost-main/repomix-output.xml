@@ -1,0 +1,817 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+backend_papikost-main/pom.xml
+backend_papikost-main/src/main/java/com/papikost/api/config/CorsConfig.java
+backend_papikost-main/src/main/java/com/papikost/api/controller/ReservasiController.java
+backend_papikost-main/src/main/java/com/papikost/api/dto/request/ReservasiRequestDTO.java
+backend_papikost-main/src/main/java/com/papikost/api/entity/Admin.java
+backend_papikost-main/src/main/java/com/papikost/api/entity/Akun.java
+backend_papikost-main/src/main/java/com/papikost/api/entity/KamarKost.java
+backend_papikost-main/src/main/java/com/papikost/api/entity/PemilikKost.java
+backend_papikost-main/src/main/java/com/papikost/api/entity/Penyewa.java
+backend_papikost-main/src/main/java/com/papikost/api/model/Reservasi.java
+backend_papikost-main/src/main/java/com/papikost/api/model/ReservasiPatungan.java
+backend_papikost-main/src/main/java/com/papikost/api/model/ReservasiSolo.java
+backend_papikost-main/src/main/java/com/papikost/api/PapiKostApplication.java
+backend_papikost-main/src/main/java/com/papikost/api/repository/AkunRepository.java
+backend_papikost-main/src/main/java/com/papikost/api/repository/KamarKostRepository.java
+backend_papikost-main/src/main/java/com/papikost/api/repository/PenyewaRepository.java
+backend_papikost-main/src/main/java/com/papikost/api/seeder/DatabaseSeeder.java
+backend_papikost-main/src/main/java/com/papikost/api/service/ReservasiService.java
+backend_papikost-main/src/main/resources/application.properties
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="backend_papikost-main/pom.xml">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>3.2.5</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+    <groupId>com.papikost</groupId>
+    <artifactId>backend</artifactId>
+    <version>1.0.0</version>
+    <name>PapiKost Java Backend</name>
+    <description>REST API PapiKost - Tugas Pemrograman Berorientasi Objek (PBO)</description>
+    <properties>
+        <java.version>17</java.version>
+    </properties>
+    <dependencies>
+        <!-- Spring Boot Starter Web -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+
+        <!-- Spring Boot Starter Data JPA (for ORM & Entity modeling) -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-data-jpa</artifactId>
+        </dependency>
+
+        <!-- H2 In-Memory Database -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+    </dependencies>
+
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+        </plugins>
+    </build>
+</project>
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/config/CorsConfig.java">
+package com.papikost.api.config;
+
+import org.springframework.context.annotation.Configuration;
+import org.springframework.web.servlet.config.annotation.CorsRegistry;
+import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+@Configuration
+public class CorsConfig implements WebMvcConfigurer {
+
+    @Override
+    public void addCorsMappings(CorsRegistry registry) {
+        registry.addMapping("/**") // Mengizinkan semua endpoint API
+                .allowedOrigins("*") // Mengizinkan akses dari semua origin (React lokal/Vercel)
+                .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                .allowedHeaders("*");
+    }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/controller/ReservasiController.java">
+package com.papikost.api.controller;
+
+import com.papikost.api.dto.request.ReservasiRequestDTO;
+import com.papikost.api.service.ReservasiService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@RestController
+@RequestMapping("/api/reservasi")
+public class ReservasiController {
+
+    @Autowired
+    private ReservasiService reservasiService;
+
+    @PostMapping("/hitung")
+    public ResponseEntity<?> hitungReservasi(@RequestBody ReservasiRequestDTO request) {
+        
+        // Memanggil service untuk menjalankan logika perhitungan polimorfisme
+        String hasilHitung = reservasiService.hitungTotal(
+            request.getIdKamar(), 
+            request.getDurasiBulan(), 
+            request.isPatungan()
+        );
+
+        // Menyusun format balasan JSON dengan gaya personal yang unik
+        Map<String, Object> kingEmyuResponse = new HashMap<>();
+        kingEmyuResponse.put("status", "success");
+        kingEmyuResponse.put("totalHarga", hasilHitung);
+        kingEmyuResponse.put("isEmulatedFromJava", false); // Menandakan ini data asli dari Spring Boot
+        
+        return ResponseEntity.ok(kingEmyuResponse);
+    }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/dto/request/ReservasiRequestDTO.java">
+package com.papikost.api.dto.request;
+
+public class ReservasiRequestDTO {
+    private Long idPenyewa;
+    private Long idKamar;
+    private int durasiBulan;
+    private boolean isPatungan;
+    
+    // Generate Getter dan Setter di IDE Anda
+    public Long getIdPenyewa() { return idPenyewa; }
+    public void setIdPenyewa(Long idPenyewa) { this.idPenyewa = idPenyewa; }
+    
+    public Long getIdKamar() { return idKamar; }
+    public void setIdKamar(Long idKamar) { this.idKamar = idKamar; }
+
+    public int getDurasiBulan() { return durasiBulan; }
+    public void setDurasiBulan(int durasiBulan) { this.durasiBulan = durasiBulan; }
+
+    public boolean isPatungan() { return isPatungan; }
+    public void setPatungan(boolean patungan) { isPatungan = patungan; }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/entity/Admin.java">
+package com.papikost.api.entity;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.PrimaryKeyJoinColumn;
+import jakarta.persistence.Table;
+
+// ==========================================
+// INHERITANCE (Pilar PBO)
+// ==========================================
+// Class Admin mewarisi (extends) semua field dan method publik dari class induk 'Akun'.
+// Menggunakan @PrimaryKeyJoinColumn untuk mencocokkan kunci utama tabel anak dengan tabel induk.
+
+@Entity
+@Table(name = "admin")
+@PrimaryKeyJoinColumn(name = "id_akun")
+public class Admin extends Akun {
+
+    private String namaLengkap;
+
+    // Constructor Default
+    public Admin() {
+        super();
+        this.setRole("ADMIN");
+    }
+
+    // Constructor Overloaded
+    public Admin(String email, String password, String namaLengkap) {
+        super(email, password, "ADMIN");
+        this.namaLengkap = namaLengkap;
+    }
+
+    // ENCAPSULATION
+    public String getNamaLengkap() {
+        return this.namaLengkap;
+    }
+
+    public void setNamaLengkap(String namaLengkap) {
+        this.namaLengkap = namaLengkap;
+    }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/entity/Akun.java">
+package com.papikost.api.entity;
+
+import jakarta.persistence.*;
+
+// ==========================================
+// 1. ABSTRACTION & INHERITANCE (Pilar PBO)
+// ==========================================
+// Class ini adalah abstract class, merepresentasikan generalisasi Akun dalam sistem.
+// Menerapkan strategi pewarisan JOINED di JPA untuk memetakan subclass ke tabel terpisah.
+
+@Entity
+@Table(name = "akun")
+@Inheritance(strategy = InheritanceType.JOINED)
+public abstract class Akun {
+
+    // ==========================================
+    // 2. ENCAPSULATION (Pilar PBO)
+    // ==========================================
+    // Menyembunyikan detail atribut dengan membatasi akses melalui keyword 'private'.
+    // Atribut hanya dapat dibaca dan dimodifikasi menggunakan metode Getter dan Setter publik.
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    @Column(nullable = false, unique = true)
+    private String email;
+
+    @Column(nullable = false)
+    private String password;
+
+    @Column(nullable = false)
+    private String role; // e.g. "ADMIN", "PEMILIK", "PENYEWA"
+
+    // Constructor Default required for Hibernate
+    public Akun() {}
+
+    // Overloaded Constructor
+    public Akun(String email, String password, String role) {
+        this.email = email;
+        this.password = password;
+        this.role = role;
+    }
+
+    // ==========================================
+    // GETTERS & SETTERS (Metode Akses Kapsul)
+    // ==========================================
+
+    public Long getId() {
+        return this.id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getEmail() {
+        return this.email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    public String getPassword() {
+        return this.password;
+    }
+
+    public void setPassword(String password) {
+        this.password = password;
+    }
+
+    public String getRole() {
+        return this.role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
+    }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/entity/KamarKost.java">
+package com.papikost.api.entity;
+
+import jakarta.persistence.*;
+
+@Entity
+@Table(name = "kamar_kost")
+public class KamarKost {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String namaKost;
+    private String daerah; // Padang Bulan, Dr. Mansyur, Setia Budi
+    private double hargaDasar;
+    private String status; // Tersedia, Penuh, Sisa 1 Kamar
+
+    public KamarKost() {}
+
+    public KamarKost(String namaKost, String daerah, double hargaDasar, String status) {
+        this.namaKost = namaKost;
+        this.daerah = daerah;
+        this.hargaDasar = hargaDasar;
+        this.status = status;
+    }
+
+    // ENCAPSULATION Getter/Setters
+    public Long getId() {
+        return id;
+    }
+
+    public void setId(Long id) {
+        this.id = id;
+    }
+
+    public String getNamaKost() {
+        return namaKost;
+    }
+
+    public void setNamaKost(String namaKost) {
+        this.namaKost = namaKost;
+    }
+
+    public String getDaerah() {
+        return daerah;
+    }
+
+    public void setDaerah(String daerah) {
+        this.daerah = daerah;
+    }
+
+    public double getHargaDasar() {
+        return hargaDasar;
+    }
+
+    public void setHargaDasar(double hargaDasar) {
+        this.hargaDasar = hargaDasar;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/entity/PemilikKost.java">
+package com.papikost.api.entity;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.PrimaryKeyJoinColumn;
+import jakarta.persistence.Table;
+
+// ==========================================
+// INHERITANCE (Pilar PBO)
+// ==========================================
+// PemilikKost mewarisi (extends) fungsionalitas dasar 'Akun' dan menambahkan fungsionalitas unik pemilik kost.
+
+@Entity
+@Table(name = "pemilik_kost")
+@PrimaryKeyJoinColumn(name = "id_akun")
+public class PemilikKost extends Akun {
+
+    private String namaPemilik;
+    private String nomorHandphone;
+
+    // Constructor Default
+    public PemilikKost() {
+        super();
+        this.setRole("PEMILIK");
+    }
+
+    // Constructor Overloaded
+    public PemilikKost(String email, String password, String namaPemilik, String nomorHandphone) {
+        super(email, password, "PEMILIK");
+        this.namaPemilik = namaPemilik;
+        this.nomorHandphone = nomorHandphone;
+    }
+
+    // ENCAPSULATION
+    public String getNamaPemilik() {
+        return namaPemilik;
+    }
+
+    public void setNamaPemilik(String namaPemilik) {
+        this.namaPemilik = namaPemilik;
+    }
+
+    public String getNomorHandphone() {
+        return nomorHandphone;
+    }
+
+    public void setNomorHandphone(String nomorHandphone) {
+        this.nomorHandphone = nomorHandphone;
+    }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/entity/Penyewa.java">
+package com.papikost.api.entity;
+
+import jakarta.persistence.Entity;
+import jakarta.persistence.PrimaryKeyJoinColumn;
+import jakarta.persistence.Table;
+
+// ==========================================
+// INHERITANCE (Pilar PBO)
+// ==========================================
+// Penyewa mewarisi (extends) fungsionalitas dasar 'Akun' dan menambahkan fungsionalitas unik penyewa kost.
+
+@Entity
+@Table(name = "penyewa")
+@PrimaryKeyJoinColumn(name = "id_akun")
+public class Penyewa extends Akun {
+
+    private String namaPenyewa;
+    private String pekerjaan;
+    private String kotaAsal;
+
+    // Constructor Default
+    public Penyewa() {
+        super();
+        this.setRole("PENYEWA");
+    }
+
+    // Constructor Overloaded
+    public Penyewa(String email, String password, String namaPenyewa, String pekerjaan, String kotaAsal) {
+        super(email, password, "PENYEWA");
+        this.namaPenyewa = namaPenyewa;
+        this.pekerjaan = pekerjaan;
+        this.kotaAsal = kotaAsal;
+    }
+
+    // ENCAPSULATION
+    public String getNamaPenyewa() {
+        return namaPenyewa;
+    }
+
+    public void setNamaPenyewa(String namaPenyewa) {
+        this.namaPenyewa = namaPenyewa;
+    }
+
+    public String getPekerjaan() {
+        return pekerjaan;
+    }
+
+    public void setPekerjaan(String pekerjaan) {
+        this.pekerjaan = pekerjaan;
+    }
+
+    public String getKotaAsal() {
+        return kotaAsal;
+    }
+
+    public void setKotaAsal(String kotaAsal) {
+        this.kotaAsal = kotaAsal;
+    }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/model/Reservasi.java">
+package com.papikost.api.model;
+
+// ==========================================
+// ABSTRACTION (Pilar PBO)
+// ==========================================
+// Class ini dideklarasikan sebagai abstract class, yang bertindak sebagai template atau
+// spesifikasi bagi sistem reservasi PapiKost. Kita tidak bisa langsung membuat instansiasi
+// (menggunakan keyword 'new') dari class 'Reservasi'.
+
+public abstract class Reservasi {
+
+    private String idReservasi;
+    private double hargaKostDasar; // Harga per bulan
+    private int durasiBulan;
+
+    // Default Constructor
+    public Reservasi() {}
+
+    // Overloaded Constructor
+    public Reservasi(String idReservasi, double hargaKostDasar, int durasiBulan) {
+        this.idReservasi = idReservasi;
+        this.hargaKostDasar = hargaKostDasar;
+        this.durasiBulan = durasiBulan;
+    }
+
+    // ==========================================
+    // ABSTRACTION - ABSTRACT METHOD (Pilar PBO)
+    // ==========================================
+    // Sebuah abstrak metode yang harus di-override (diimplementasikan) secara berbeda
+    // oleh masing-masing kelas turunan (ReservasiSolo vs. ReservasiPatungan).
+    public abstract double hitungTotalTagihan();
+
+    // ENCAPSULATION Getters & Setters
+    public String getIdReservasi() {
+        return idReservasi;
+    }
+
+    public void setIdReservasi(String idReservasi) {
+        this.idReservasi = idReservasi;
+    }
+
+    public double getHargaKostDasar() {
+        return hargaKostDasar;
+    }
+
+    public void setHargaKostDasar(double hargaKostDasar) {
+        this.hargaKostDasar = hargaKostDasar;
+    }
+
+    public int getDurasiBulan() {
+        return durasiBulan;
+    }
+
+    public void setDurasiBulan(int durasiBulan) {
+        this.durasiBulan = durasiBulan;
+    }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/model/ReservasiPatungan.java">
+package com.papikost.api.model;
+
+// ==========================================
+// INHERITANCE & POLYMORPHISM (Pilar PBO)
+// ==========================================
+// ReservasiPatungan mewarisi (extends) dari kelas abstrak induk 'Reservasi'.
+// Menerapkan metodologi Polymorphism dengan melakukan OVERRIDE pada metode abstract 'hitungTotalTagihan()'.
+
+public class ReservasiPatungan extends Reservasi {
+
+    private int jumlahOrang;
+
+    public ReservasiPatungan() {
+        super();
+        this.jumlahOrang = 1;
+    }
+
+    public ReservasiPatungan(String idReservasi, double hargaKostDasar, int durasiBulan, int jumlahOrang) {
+        super(idReservasi, hargaKostDasar, durasiBulan);
+        this.jumlahOrang = Math.max(1, jumlahOrang); // Mencegah pembagian dengen nol atau angka negatif
+    }
+
+    // ==========================================
+    // POLYMORPHISM - OVERRIDING (Pilar PBO)
+    // ==========================================
+    // Mengimplementasikan perhitungan tagihan yang dimodifikasi khusus untuk sistem sewa patungan.
+    // Total Tagihan = (Harga Dasar per Bulan / Jumlah Orang) * Durasi Bulan.
+    @Override
+    public double hitungTotalTagihan() {
+        double hargaPatunganPerOrang = this.getHargaKostDasar() / this.jumlahOrang;
+        return hargaPatunganPerOrang * this.getDurasiBulan();
+    }
+
+    // ENCAPSULATION Getter & Setter unik untuk sub-class ini
+    public int getJumlahOrang() {
+        return this.jumlahOrang;
+    }
+
+    public void setJumlahOrang(int jumlahOrang) {
+        this.jumlahOrang = Math.max(1, jumlahOrang);
+    }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/model/ReservasiSolo.java">
+package com.papikost.api.model;
+
+// ==========================================
+// INHERITANCE & POLYMORPHISM (Pilar PBO)
+// ==========================================
+// ReservasiSolo mewarisi (extends) dari kelas abstrak induk 'Reservasi'.
+// Menerapkan metodologi Polymorphism dengan melakukan OVERRIDE pada metode abstract 'hitungTotalTagihan()'.
+
+public class ReservasiSolo extends Reservasi {
+
+    public ReservasiSolo() {
+        super();
+    }
+
+    public ReservasiSolo(String idReservasi, double hargaKostDasar, int durasiBulan) {
+        super(idReservasi, hargaKostDasar, durasiBulan);
+    }
+
+    // ==========================================
+    // POLYMORPHISM - OVERRIDING (Pilar PBO)
+    // ==========================================
+    // Implementasi spesifik hitungTotalTagihan untuk sewa mandiri (tanpa patungan).
+    // Total Tagihan = Harga Dasar per Bulan * Durasi Bulan.
+    @Override
+    public double hitungTotalTagihan() {
+        return this.getHargaKostDasar() * this.getDurasiBulan();
+    }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/PapiKostApplication.java">
+package com.papikost.api;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class PapiKostApplication {
+    public static void main(String[] args) {
+        SpringApplication.run(PapiKostApplication.class, args);
+        System.out.println("PapiKost Spring Boot Rest API is running on http://localhost:8080");
+    }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/repository/AkunRepository.java">
+package com.papikost.api.repository;
+
+import com.papikost.api.entity.Akun;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.Optional;
+
+@Repository
+public interface AkunRepository extends JpaRepository<Akun, Long> {
+    Optional<Akun> findByEmail(String email);
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/repository/KamarKostRepository.java">
+package com.papikost.api.repository;
+
+import com.papikost.api.entity.KamarKost;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+import java.util.List;
+
+@Repository
+public interface KamarKostRepository extends JpaRepository<KamarKost, Long> {
+    List<KamarKost> findByDaerah(String daerah);
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/repository/PenyewaRepository.java">
+package com.papikost.api.repository;
+
+import com.papikost.api.entity.Penyewa;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.stereotype.Repository;
+
+@Repository
+public interface PenyewaRepository extends JpaRepository<Penyewa, Long> {
+    // Mewarisi fungsi-fungsi standar CRUD JPA
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/seeder/DatabaseSeeder.java">
+package com.papikost.api.seeder;
+
+import com.papikost.api.entity.KamarKost;
+import com.papikost.api.entity.Penyewa;
+import com.papikost.api.repository.KamarKostRepository;
+import com.papikost.api.repository.PenyewaRepository;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
+
+@Component
+public class DatabaseSeeder implements CommandLineRunner {
+
+    private final PenyewaRepository penyewaRepository;
+    private final KamarKostRepository kamarKostRepository;
+
+    public DatabaseSeeder(PenyewaRepository penyewaRepository, KamarKostRepository kamarKostRepository) {
+        this.penyewaRepository = penyewaRepository;
+        this.kamarKostRepository = kamarKostRepository;
+    }
+
+    @Override
+    public void run(String... args) throws Exception {
+        System.out.println("Memulai Seeding Database H2 PapiKost...");
+
+        // 1. Seed Data Penyewa (Rio Johanes, Andreas Pegri Damanik, Maruli Ricardo)
+        if (penyewaRepository.count() == 0) {
+            Penyewa p1 = new Penyewa("riojohanes@email.com", "password123", "Rio Johanes", "Mahasiswa USU", "Medan");
+            Penyewa p2 = new Penyewa("andreas@email.com", "password123", "Andreas Pegri Damanik", "Karyawan Swasta", "Simalungun");
+            Penyewa p3 = new Penyewa("maruli@email.com", "password123", "Maruli Ricardo", "Karyawan Swasta", "Toba");
+
+            penyewaRepository.save(p1);
+            penyewaRepository.save(p2);
+            penyewaRepository.save(p3);
+
+            System.out.println("Berhasil seeding data Penyewa.");
+        }
+
+        // 2. Seed Data Kamar Kost Medan (daerah Padang Bulan, Dr. Mansyur, Setia Budi)
+        if (kamarKostRepository.count() == 0) {
+            KamarKost k1 = new KamarKost("Kost Putra Padang Bulan", "Padang Bulan", 1500000.0, "Tersedia 2 Kamar");
+            KamarKost k2 = new KamarKost("Kost Eksklusif Setia Budi", "Setia Budi", 2200000.0, "Tersedia");
+            KamarKost k3 = new KamarKost("Kost Putri Dr. Mansyur", "Dr. Mansyur", 1300000.0, "Sisa 1 Kamar");
+
+            kamarKostRepository.save(k1);
+            kamarKostRepository.save(k2);
+            kamarKostRepository.save(k3);
+
+            System.out.println("Berhasil seeding data Kamar Kost Medan.");
+        }
+
+        System.out.println("Seeding Database PapiKost selesai!");
+    }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/java/com/papikost/api/service/ReservasiService.java">
+package com.papikost.api.service;
+
+import com.papikost.api.entity.Reservasi;
+import com.papikost.api.repository.KamarKostRepository;
+import com.papikost.api.repository.PenyewaRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Service
+public class ReservasiService {
+
+    @Autowired
+    private KamarKostRepository kamarKostRepository;
+
+    @Autowired
+    private PenyewaRepository penyewaRepository;
+
+    // TODO: Pindahkan logika perhitungan harga (ReservasiSolo / ReservasiPatungan) ke sini
+    
+    public String hitungTotal(Long kamarId, int durasiBulan, boolean isPatungan) {
+        // Logika polimorfisme Anda bisa diletakkan di sini
+        return "Harga sedang dihitung..."; 
+    }
+    
+    // Method untuk menyimpan data ke database
+    public void simpanReservasi(Reservasi reservasi) {
+        // Logika simpan
+    }
+}
+</file>
+
+<file path="backend_papikost-main/src/main/resources/application.properties">
+# Port dinamis untuk cloud (fallback ke 8080 jika lokal)
+server.port=${PORT:8080}
+
+# Konfigurasi H2 Database In-Memory
+spring.datasource.url=jdbc:h2:mem:papikostdb
+spring.datasource.driverClassName=org.h2.Driver
+spring.datasource.username=sa
+spring.datasource.password=
+
+# Konfigurasi Hibernate (Auto-create tabel)
+spring.jpa.database-platform=org.hibernate.dialect.H2Dialect
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+
+# H2 Console GUI
+spring.h2.console.enabled=true
+spring.h2.console.path=/h2-console
+</file>
+
+</files>
