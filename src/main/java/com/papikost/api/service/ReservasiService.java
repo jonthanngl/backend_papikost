@@ -1,6 +1,6 @@
 package com.papikost.api.service;
 
-import com.papikost.api.entity.Reservasi;
+import com.papikost.api.model.Reservasi;
 import com.papikost.api.repository.KamarKostRepository;
 import com.papikost.api.repository.PenyewaRepository;
 import org.springframework.beans.factory.annotation.Autowired;
