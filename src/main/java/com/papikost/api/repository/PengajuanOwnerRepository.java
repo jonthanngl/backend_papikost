@@ -8,4 +8,5 @@ import java.util.List;
 @Repository
 public interface PengajuanOwnerRepository extends JpaRepository<PengajuanOwner, Long> {
     List<PengajuanOwner> findAllByOrderByCreatedAtDesc();
+    List<PengajuanOwner> findByUserIdOrderByCreatedAtDesc(Long userId);
 }

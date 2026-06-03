@@ -6,10 +6,13 @@ import com.papikost.api.entity.PengajuanOwner;
 import com.papikost.api.repository.AkunRepository;
 import com.papikost.api.repository.BiodataRepository;
 import com.papikost.api.repository.PengajuanOwnerRepository;
+import org.springframework.lang.NonNull;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class AdminVerifikasiService {
@@ -18,7 +21,7 @@ public class AdminVerifikasiService {
     private final PengajuanOwnerRepository pengajuanOwnerRepository;
     private final AkunRepository akunRepository;
 
-    public AdminVerifikasiService(BiodataRepository biodataRepository, 
+    public AdminVerifikasiService(BiodataRepository biodataRepository,
                                   PengajuanOwnerRepository pengajuanOwnerRepository,
                                   AkunRepository akunRepository) {
         this.biodataRepository = biodataRepository;
@@ -26,26 +29,86 @@ public class AdminVerifikasiService {
         this.akunRepository = akunRepository;
     }
 
-    // --- LOGIKA VERIFIKASI BIODATA ---
+    // ── Verifikasi Data Diri (User) ──────────────────────────────────────────
+
     public List<Biodata> getAllVerifikasiDataDiri() {
-        return biodataRepository.findAll();
+        // Tampilkan semua biodata yang sudah diajukan (PENDING, DISETUJUI, DITOLAK)
+        return biodataRepository.findAll().stream()
+                .filter(b -> b.getVerifikasiStatus() != null && !"BELUM".equals(b.getVerifikasiStatus()))
+                .sorted((a, b) -> {
+                    int order = statusOrder(a.getVerifikasiStatus()) - statusOrder(b.getVerifikasiStatus());
+                    if (order != 0) return order;
+                    return Long.compare(b.getUserId(), a.getUserId());
+                })
+                .collect(Collectors.toList());
     }
 
-    public Biodata updateStatusDataDiri(Long userId, String status) {
-        Optional<Biodata> optionalBiodata = biodataRepository.findById(userId);
-        if (optionalBiodata.isPresent()) {
-            Biodata biodata = optionalBiodata.get();
-            // Jika status disetujui, isVerified menjadi true
-            biodata.setIsVerified("DISETUJUI".equalsIgnoreCase(status));
-            // Catatan: Anda bisa menambahkan field "verifikasiStatus" di entitas Biodata nanti 
-            // jika ingin menyimpan status string PENDING/DISETUJUI/DITOLAK secara presisi.
-            return biodataRepository.save(biodata);
+    private int statusOrder(String status) {
+        if ("PENDING".equals(status))   return 0;
+        if ("DITOLAK".equals(status))   return 1;
+        if ("DISETUJUI".equals(status)) return 2;
+        return 3;
+    }
+
+    /**
+     * Update status satu berkas user (ktp, kk, atau foto) beserta komentar.
+     * Setelah semua berkas di-update, tentukan status keseluruhan:
+     * - Semua DISETUJUI → verifikasiStatus = DISETUJUI, isVerified = true
+     * - Ada yang DITOLAK → verifikasiStatus = DITOLAK
+     * - Ada yang masih PENDING → tetap PENDING
+     */
+    public Biodata updateStatusBerkasUser(@NonNull Long userId, @NonNull Map<String, String> request) {
+        Biodata biodata = biodataRepository.findById(userId)
+                .orElseThrow(() -> new RuntimeException("Biodata dengan ID " + userId + " tidak ditemukan."));
+
+        String jenisBerkas = request.get("jenisBerkas"); // "ktp", "kk", "foto"
+        String status = request.get("status").toUpperCase(); // "DISETUJUI" atau "DITOLAK"
+        String komentar = request.get("komentar"); // wajib diisi jika DITOLAK
+
+        switch (jenisBerkas.toLowerCase()) {
+            case "ktp":
+                biodata.setKtpStatus(status);
+                biodata.setKtpKomentar(komentar);
+                break;
+            case "kk":
+                biodata.setKkStatus(status);
+                biodata.setKkKomentar(komentar);
+                break;
+            case "foto":
+                biodata.setFotoStatus(status);
+                biodata.setFotoKomentar(komentar);
+                break;
+            default:
+                throw new RuntimeException("Jenis berkas tidak valid: " + jenisBerkas);
         }
-        throw new RuntimeException("Biodata dengan ID " + userId + " tidak ditemukan.");
+
+        // Tentukan status keseluruhan berdasarkan semua berkas
+        recalculateVerifikasiStatusUser(biodata);
+
+        return biodataRepository.save(biodata);
     }
 
-    // --- LOGIKA PENGAJUAN OWNER ---
-    public PengajuanOwner buatPengajuanOwner(PengajuanOwner pengajuan) {
+    private void recalculateVerifikasiStatusUser(Biodata biodata) {
+        String ktpSt = biodata.getKtpStatus();
+        String kkSt = biodata.getKkStatus();
+        String fotoSt = biodata.getFotoStatus();
+
+        if ("DISETUJUI".equals(ktpSt) && "DISETUJUI".equals(kkSt) && "DISETUJUI".equals(fotoSt)) {
+            biodata.setVerifikasiStatus("DISETUJUI");
+            biodata.setIsVerified(true);
+        } else if ("DITOLAK".equals(ktpSt) || "DITOLAK".equals(kkSt) || "DITOLAK".equals(fotoSt)) {
+            biodata.setVerifikasiStatus("DITOLAK");
+            biodata.setIsVerified(false);
+        } else {
+            // Masih ada yang PENDING atau BELUM
+            biodata.setVerifikasiStatus("PENDING");
+            biodata.setIsVerified(false);
+        }
+    }
+
+    // ── Pengajuan Owner ──────────────────────────────────────────────────────
+
+    public PengajuanOwner buatPengajuanOwner(@NonNull PengajuanOwner pengajuan) {
         return pengajuanOwnerRepository.save(pengajuan);
     }
 
@@ -53,22 +116,65 @@ public class AdminVerifikasiService {
         return pengajuanOwnerRepository.findAllByOrderByCreatedAtDesc();
     }
 
-    public PengajuanOwner updateStatusPengajuanOwner(Long id, String status) {
-        Optional<PengajuanOwner> optionalPengajuan = pengajuanOwnerRepository.findById(id);
-        if (optionalPengajuan.isPresent()) {
-            PengajuanOwner pengajuan = optionalPengajuan.get();
-            pengajuan.setStatus(status);
-            
-            // Jika disetujui, kita ubah role akun menjadi 'PEMILIK'
-            if ("DISETUJUI".equalsIgnoreCase(status)) {
-                Optional<Akun> akun = akunRepository.findById(pengajuan.getUserId());
-                akun.ifPresent(a -> {
-                    a.setRole("PEMILIK");
-                    akunRepository.save(a);
+    /**
+     * Update status satu berkas owner (ktp, suratKepemilikan, atau fotoKost) beserta komentar.
+     * Setelah semua berkas di-update, tentukan status keseluruhan.
+     */
+    public PengajuanOwner updateStatusBerkasOwner(@NonNull Long id, @NonNull Map<String, String> request) {
+        PengajuanOwner pengajuan = pengajuanOwnerRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Pengajuan Owner tidak ditemukan."));
+
+        String jenisBerkas = request.get("jenisBerkas"); // "ktp", "suratKepemilikan", "fotoKost"
+        String status = request.get("status").toUpperCase();
+        String komentar = request.get("komentar");
+
+        switch (jenisBerkas.toLowerCase()) {
+            case "ktp":
+                pengajuan.setKtpStatus(status);
+                pengajuan.setKtpKomentar(komentar);
+                break;
+            case "suratkepemilikan":
+                pengajuan.setSuratKepemilikanStatus(status);
+                pengajuan.setSuratKepemilikanKomentar(komentar);
+                break;
+            case "fotokost":
+                pengajuan.setFotoKostStatus(status);
+                pengajuan.setFotoKostKomentar(komentar);
+                break;
+            default:
+                throw new RuntimeException("Jenis berkas tidak valid: " + jenisBerkas);
+        }
+
+        // Tentukan status keseluruhan
+        recalculateStatusOwner(pengajuan);
+
+        // Jika semua berkas disetujui, ubah role akun jadi pemilik
+        if ("DISETUJUI".equals(pengajuan.getStatus())) {
+            Long userId = pengajuan.getUserId();
+            if (userId != null) {
+                Optional<Akun> akunOpt = akunRepository.findById(userId);
+                akunOpt.ifPresent(akun -> {
+                    akun.setRole("pemilik");
+                    akunRepository.save(akun);
                 });
             }
-            return pengajuanOwnerRepository.save(pengajuan);
         }
-        throw new RuntimeException("Pengajuan Owner tidak ditemukan.");
+
+        return pengajuanOwnerRepository.save(pengajuan);
+    }
+
+    private void recalculateStatusOwner(PengajuanOwner pengajuan) {
+        String ktpSt = pengajuan.getKtpStatus();
+        String suratSt = pengajuan.getSuratKepemilikanStatus();
+        String fotoSt = pengajuan.getFotoKostStatus();
+
+        if ("DISETUJUI".equals(ktpSt) && "DISETUJUI".equals(suratSt) && "DISETUJUI".equals(fotoSt)) {
+            pengajuan.setStatus("DISETUJUI");
+        } else if ("DITOLAK".equals(ktpSt) || "DITOLAK".equals(suratSt) || "DITOLAK".equals(fotoSt)) {
+            pengajuan.setStatus("DITOLAK");
+        } else {
+            pengajuan.setStatus("PENDING");
+        }
     }
 }
+

@@ -2,6 +2,7 @@ package com.papikost.api.entity;
 
 import jakarta.persistence.*;
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 
 @Entity
 public class PengajuanSewa {
@@ -10,19 +11,31 @@ public class PengajuanSewa {
     private Long id;
 
     private Long userId;
-    private Long kamarId;
+    private Long kamarId; // Relasi ke UnitKamar
 
-    private String tipeSewa; 
+    // "SOLO" atau "DUO"
+    private String tipeSewa;
     private Integer durasiBulan;
     private Double totalTagihan;
-    private String status; 
+    
+    // PENDING, DITERIMA, DITOLAK
+    private String status;
     private LocalDateTime tanggalPengajuan;
+    
+    // Untuk tipe DUO (Sewa 2 Orang)
+    private Long roommateId; // ID user yang diajak
+    private String roommateUsername;
+    
+    // Diisi oleh Owner setelah acc: kamar yang dialokasikan
+    private Long unitKamarId;
+    private LocalDate tanggalMulai;
+    private LocalDate batasKontrak;
 
     @PrePersist
     protected void onCreate() {
         this.tanggalPengajuan = LocalDateTime.now();
         if (this.status == null) {
-            this.status = "PENDING"; // Default status saat pertama kali diajukan
+            this.status = "PENDING";
         }
     }
 
@@ -43,4 +56,14 @@ public class PengajuanSewa {
     public void setStatus(String status) { this.status = status; }
     public LocalDateTime getTanggalPengajuan() { return tanggalPengajuan; }
     public void setTanggalPengajuan(LocalDateTime tanggalPengajuan) { this.tanggalPengajuan = tanggalPengajuan; }
+    public Long getRoommateId() { return roommateId; }
+    public void setRoommateId(Long roommateId) { this.roommateId = roommateId; }
+    public String getRoommateUsername() { return roommateUsername; }
+    public void setRoommateUsername(String roommateUsername) { this.roommateUsername = roommateUsername; }
+    public Long getUnitKamarId() { return unitKamarId; }
+    public void setUnitKamarId(Long unitKamarId) { this.unitKamarId = unitKamarId; }
+    public LocalDate getTanggalMulai() { return tanggalMulai; }
+    public void setTanggalMulai(LocalDate tanggalMulai) { this.tanggalMulai = tanggalMulai; }
+    public LocalDate getBatasKontrak() { return batasKontrak; }
+    public void setBatasKontrak(LocalDate batasKontrak) { this.batasKontrak = batasKontrak; }
 }

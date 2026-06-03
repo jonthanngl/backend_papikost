@@ -7,6 +7,7 @@ import java.util.List;
 
 @Repository
 public interface PengajuanSewaRepository extends JpaRepository<PengajuanSewa, Long> {
-    // Method khusus untuk mencari riwayat transaksi user, diurutkan dari yang terbaru
     List<PengajuanSewa> findByUserIdOrderByTanggalPengajuanDesc(Long userId);
+    List<PengajuanSewa> findByKamarIdOrderByTanggalPengajuanDesc(Long kamarId);
+    List<PengajuanSewa> findByUserIdAndStatus(Long userId, String status);
 }

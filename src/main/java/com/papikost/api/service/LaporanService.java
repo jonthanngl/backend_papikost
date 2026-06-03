@@ -22,6 +22,7 @@ public class LaporanService {
     public Laporan buatLaporanBaru(LaporanRequestDTO request) {
         Laporan laporan = new Laporan();
         laporan.setUserId(request.getUserId());
+        laporan.setUnitKamarId(request.getUnitKamarId());
         laporan.setKategori(request.getKategori());
         laporan.setKendala(request.getKendala());
         laporan.setDetail(request.getDetail() != null ? request.getDetail() : "-");
